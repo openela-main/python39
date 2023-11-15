@@ -1,0 +1,47 @@
+From db083095e3bdb93e4f8170d814664c482b1e94da Mon Sep 17 00:00:00 2001
+From: rpm-build <rpm-build>
+Date: Tue, 14 Jun 2022 06:38:43 +0200
+Subject: [PATCH] Fix test suite for Expat >= 2.4.5
+
+---
+ Lib/test/test_minidom.py | 17 +++++------------
+ 1 file changed, 5 insertions(+), 12 deletions(-)
+
+diff --git a/Lib/test/test_minidom.py b/Lib/test/test_minidom.py
+index 9762025..5f52ed1 100644
+--- a/Lib/test/test_minidom.py
++++ b/Lib/test/test_minidom.py
+@@ -1149,14 +1149,10 @@ class MinidomTest(unittest.TestCase):
+ 
+         # Verify that character decoding errors raise exceptions instead
+         # of crashing
+-        if pyexpat.version_info >= (2, 4, 5):
+-            self.assertRaises(ExpatError, parseString,
+-                    b'<fran\xe7ais></fran\xe7ais>')
+-            self.assertRaises(ExpatError, parseString,
+-                    b'<franais>Comment \xe7a va ? Tr\xe8s bien ?</franais>')
+-        else:
+-            self.assertRaises(UnicodeDecodeError, parseString,
+-                b'<fran\xe7ais>Comment \xe7a va ? Tr\xe8s bien ?</fran\xe7ais>')
++        self.assertRaises(ExpatError, parseString,
++                b'<fran\xe7ais></fran\xe7ais>')
++        self.assertRaises(ExpatError, parseString,
++                b'<franais>Comment \xe7a va ? Tr\xe8s bien ?</franais>')
+ 
+         doc.unlink()
+ 
+@@ -1617,10 +1613,7 @@ class MinidomTest(unittest.TestCase):
+         self.confirm(doc2.namespaceURI == xml.dom.EMPTY_NAMESPACE)
+ 
+     def testExceptionOnSpacesInXMLNSValue(self):
+-        if pyexpat.version_info >= (2, 4, 5):
+-            context = self.assertRaisesRegex(ExpatError, 'syntax error')
+-        else:
+-            context = self.assertRaisesRegex(ValueError, 'Unsupported syntax')
++        context = self.assertRaisesRegex(ExpatError, 'syntax error')
+ 
+         with context:
+             parseString('<element xmlns:abc="http:abc.com/de f g/hi/j k"><abc:foo /></element>')
+-- 
+2.35.3
+
