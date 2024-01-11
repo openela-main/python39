@@ -13,11 +13,11 @@ URL: https://www.python.org/
 
 #  WARNING  When rebasing to a new Python version,
 #           remember to update the python3-docs package as well
-%global general_version %{pybasever}.16
+%global general_version %{pybasever}.18
 #global prerel ...
 %global upstream_version %{general_version}%{?prerel}
 Version: %{general_version}%{?prerel:~%{prerel}}
-Release: 1%{?dist}.2
+Release: 1%{?dist}
 License: Python
 
 # Exclude i686 arch. Due to a modularity issue it's being added to the
@@ -319,8 +319,8 @@ Patch189: 00189-use-rpm-wheels.patch
 # The versions are written in Lib/ensurepip/__init__.py, this patch removes them.
 # When the bundled setuptools/pip wheel is updated, the patch no longer applies cleanly.
 # In such cases, the patch needs to be amended and the versions updated here:
-%global pip_version 21.2.3
-%global setuptools_version 57.4.0
+%global pip_version 23.0.1
+%global setuptools_version 58.1.0
 
 # 00251 # 2eabd04356402d488060bc8fe316ad13fc8a3356
 # Change user install location
@@ -415,27 +415,15 @@ Patch353: 00353-architecture-names-upstream-downstream.patch
 # Upstream: https://bugs.python.org/issue46811
 Patch378: 00378-support-expat-2-4-5.patch
 
-# 00399 # c32eff86eb80f6a6bdcbf4b1b6535fbc627b51a2
-# CVE-2023-24329
-#
-# * gh-102153: Start stripping C0 control and space chars in `urlsplit` (GH-102508)
-#
-# `urllib.parse.urlsplit` has already been respecting the WHATWG spec a bit GH-25595.
-#
-# This adds more sanitizing to respect the "Remove any leading C0 control or space from input" [rule](https://url.spec.whatwg.org/GH-url-parsing:~:text=Remove%%20any%%20leading%%20and%%20trailing%%20C0%%20control%%20or%%20space%%20from%%20input.) in response to [CVE-2023-24329](https://nvd.nist.gov/vuln/detail/CVE-2023-24329).
-#
-# ---------
-Patch399: 00399-cve-2023-24329.patch
-
-# 00404 #
-# CVE-2023-40217
-#
-# Security fix for CVE-2023-40217: Bypass TLS handshake on closed sockets
-# Resolved upstream: https://github.com/python/cpython/issues/108310
-# Fixups added on top from:
-# https://github.com/python/cpython/issues/108342
-#
-Patch404: 00404-cve-2023-40217.patch
+# 00397 #
+# Add filters for tarfile extraction (CVE-2007-4559, PEP-706)
+# First patch fixes determination of symlink targets, which were treated
+# as relative to the root of the archive,
+# rather than the directory containing the symlink.
+# Not yet upstream as of this writing.
+# The second patch is Red Hat configuration, see KB for documentation:
+# - https://access.redhat.com/articles/7004769
+Patch397: 00397-tarfile-filter.patch
 
 # (New patches go here ^^^)
 #
@@ -848,8 +836,7 @@ rm Lib/ensurepip/_bundled/*.whl
 %apply_patch -q %{PATCH329}
 %apply_patch -q %{PATCH353}
 %apply_patch -q %{PATCH378}
-%apply_patch -q %{PATCH399}
-%apply_patch -q %{PATCH404}
+%apply_patch -q %{PATCH397}
 
 # Remove all exe files to ensure we are not shipping prebuilt binaries
 # note that those are only used to create Microsoft Windows installers
@@ -1287,6 +1274,11 @@ touch %{buildroot}%{_bindir}/python3-config
 touch %{buildroot}%{_bindir}/python3-debug
 touch %{buildroot}%{_bindir}/python3-debug-config
 
+# Strip the LTO bytecode from python.o
+# Based on the fedora brp-strip-lto scriptlet
+# https://src.fedoraproject.org/rpms/redhat-rpm-config/blob/9dd5528cf9805ebfe31cff04fe7828ad06a6023f/f/brp-strip-lto
+find %{buildroot} -type f -name 'python.o' -print0 | xargs -0 \
+bash -c "strip -p -R .gnu.lto_* -R .gnu.debuglto_* -N __gnu_lto_v1 \"\$@\"" ARG0
 
 # ======================================================
 # Checks for packaging issues
@@ -2016,13 +2008,27 @@ fi
 # ======================================================
 
 %changelog
-* Wed Sep 20 2023 Charalampos Stratakis <cstratak@redhat.com> - 3.9.16-1.2
+* Thu Sep 07 2023 Charalampos Stratakis <cstratak@redhat.com> - 3.9.18-1
+- Update to 3.9.18
 - Security fix for CVE-2023-40217
-Resolves: RHEL-3237
+Resolves: RHEL-3238
 
-* Mon May 29 2023 Charalampos Stratakis <cstratak@redhat.com> - 3.9.16-1.1
+* Wed Aug 09 2023 Petr Viktorin <pviktori@redhat.com> - 3.9.17-2
+- Fix symlink handling in the fix for CVE-2023-24329
+Resolves: rhbz#263261
+
+* Mon Jul 17 2023 Charalampos Stratakis <cstratak@redhat.com> - 3.9.17-1
+- Rebase to 3.9.17
 - Security fix for CVE-2023-24329
 Resolves: rhbz#2173917
+
+* Wed Jul 12 2023 Charalampos Stratakis <cstratak@redhat.com> - 3.9.16-3
+- Strip the LTO bytecode from python.o
+Resolves: rhbz#2213527
+
+* Mon Jun 19 2023 Petr Viktorin <pviktori@redhat.com> - 3.9.16-2
+- Add filters for tarfile extraction (CVE-2007-4559, PEP-706)
+Resolves: rhbz#263261
 
 * Tue Dec 13 2022 Charalampos Stratakis <cstratak@redhat.com> - 3.9.16-1
 - Update to 3.9.16
