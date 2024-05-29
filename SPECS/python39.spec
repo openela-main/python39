@@ -13,11 +13,11 @@ URL: https://www.python.org/
 
 #  WARNING  When rebasing to a new Python version,
 #           remember to update the python3-docs package as well
-%global general_version %{pybasever}.18
+%global general_version %{pybasever}.19
 #global prerel ...
 %global upstream_version %{general_version}%{?prerel}
 Version: %{general_version}%{?prerel:~%{prerel}}
-Release: 3%{?dist}
+Release: 1%{?dist}
 License: Python
 
 # Exclude i686 arch. Due to a modularity issue it's being added to the
@@ -445,6 +445,13 @@ Patch414: 00414-skip_test_zlib_s390x.patch
 # config file or environment variable.
 Patch415: 00415-cve-2023-27043-gh-102988-reject-malformed-addresses-in-email-parseaddr-111116.patch
 
+# 00422 # a353cebef737c41420dc7ae2469dd657371b8881
+# Fix tests for XMLPullParser with Expat 2.6.0
+#
+# Feeding the parser by too small chunks defers parsing to prevent
+# CVE-2023-52425. Future versions of Expat may be more reactive.
+Patch422: 00422-fix-tests-for-xmlpullparser-with-expat-2-6-0.patch
+
 # (New patches go here ^^^)
 #
 # When adding new patches to "python" and "python3" in Fedora, EL, etc.,
@@ -859,6 +866,7 @@ rm Lib/ensurepip/_bundled/*.whl
 %apply_patch -q %{PATCH397}
 %apply_patch -q %{PATCH414}
 %apply_patch -q %{PATCH415}
+%apply_patch -q %{PATCH422}
 
 # Remove all exe files to ensure we are not shipping prebuilt binaries
 # note that those are only used to create Microsoft Windows installers
@@ -2030,6 +2038,12 @@ fi
 # ======================================================
 
 %changelog
+* Mon Apr 22 2024 Charalampos Stratakis <cstratak@redhat.com> - 3.9.19-1
+- Update to 3.9.19
+- Security fixes for CVE-2023-6597 and CVE-2024-0450
+- Fix tests for XMLPullParser with Expat with fixed CVE
+Resolves: RHEL-33676, RHEL-33688
+
 * Wed Jan 17 2024 Lumír Balhar <lbalhar@redhat.com> - 3.9.18-3
 - Skip tests failing on s390x
 Resolves: RHEL-21905
