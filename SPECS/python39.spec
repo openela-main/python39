@@ -17,7 +17,7 @@ URL: https://www.python.org/
 #global prerel ...
 %global upstream_version %{general_version}%{?prerel}
 Version: %{general_version}%{?prerel:~%{prerel}}
-Release: 1%{?dist}
+Release: 7%{?dist}
 License: Python
 
 # Exclude i686 arch. Due to a modularity issue it's being added to the
@@ -181,6 +181,13 @@ ExcludeArch: i686
 %global py_SOVERSION 1.0
 %global py_INSTSONAME_optimized libpython%{LDVERSION_optimized}.so.%{py_SOVERSION}
 %global py_INSTSONAME_debug     libpython%{LDVERSION_debug}.so.%{py_SOVERSION}
+
+# The -O flag for the compiler, optimized builds
+# https://fedoraproject.org/wiki/Changes/Python_built_with_gcc_O3
+%global optflags_optimized -O3
+# The -O flag for the compiler, debug builds
+# -Wno-cpp avoids some warnings with -O0
+%global optflags_debug -O0 -Wno-cpp
 
 # Disable automatic bytecompilation. The python3 binary is not yet be
 # available in /usr/bin when Python is built. Also, the bytecompilation fails
@@ -451,6 +458,35 @@ Patch415: 00415-cve-2023-27043-gh-102988-reject-malformed-addresses-in-email-par
 # Feeding the parser by too small chunks defers parsing to prevent
 # CVE-2023-52425. Future versions of Expat may be more reactive.
 Patch422: 00422-fix-tests-for-xmlpullparser-with-expat-2-6-0.patch
+
+# 00431 #
+# Security fix for CVE-2024-4032: incorrect IPv4 and IPv6 private ranges
+# Resolved upstream: https://github.com/python/cpython/issues/113171
+# Tracking bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=2292921
+Patch431: 00431-CVE-2024-4032.patch
+
+# 00435 # f2924d30f4dd44804219c10410a57dd96764d297
+# gh-121650: Encode newlines in headers, and verify headers are sound (GH-122233)
+#
+# Per RFC 2047:
+#
+# > [...] these encoding schemes allow the
+# > encoding of arbitrary octet values, mail readers that implement this
+# > decoding should also ensure that display of the decoded data on the
+# > recipient's terminal will not cause unwanted side-effects
+#
+# It seems that the "quoted-word" scheme is a valid way to include
+# a newline character in a header value, just like we already allow
+# undecodable bytes or control characters.
+# They do need to be properly quoted when serialized to text, though.
+#
+# This should fail for custom fold() implementations that aren't careful
+# about newlines.
+Patch435: 00435-gh-121650-encode-newlines-in-headers-and-verify-headers-are-sound-gh-122233.patch
+
+# 00436 # 506dd77b7132f69ada7185b8bb91eba0e1296aa8
+# [CVE-2024-8088] gh-122905: Sanitize names in zipfile.Path.
+Patch436: 00436-cve-2024-8088-gh-122905-sanitize-names-in-zipfile-path.patch
 
 # (New patches go here ^^^)
 #
@@ -867,6 +903,9 @@ rm Lib/ensurepip/_bundled/*.whl
 %apply_patch -q %{PATCH414}
 %apply_patch -q %{PATCH415}
 %apply_patch -q %{PATCH422}
+%apply_patch -q %{PATCH431}
+%apply_patch -q %{PATCH435}
+%apply_patch -q %{PATCH436}
 
 # Remove all exe files to ensure we are not shipping prebuilt binaries
 # note that those are only used to create Microsoft Windows installers
@@ -943,6 +982,7 @@ BuildPython() {
   ConfName=$1
   ExtraConfigArgs=$2
   MoreCFlags=$3
+  MoreCFlagsNodist=$4
 
   # Each build is done in its own directory
   ConfDir=build/$ConfName
@@ -977,7 +1017,7 @@ BuildPython() {
   $ExtraConfigArgs \
   %{nil}
 
-%global flags_override EXTRA_CFLAGS="$MoreCFlags" CFLAGS_NODIST="$CFLAGS_NODIST $MoreCFlags"
+%global flags_override EXTRA_CFLAGS="$MoreCFlags" CFLAGS_NODIST="$CFLAGS_NODIST $MoreCFlags $MoreCFlagsNodist"
 
 %if %{without bootstrap}
   # Regenerate generated files (needs python3)
@@ -1000,12 +1040,14 @@ BuildPython() {
 # See also: https://bugzilla.redhat.com/show_bug.cgi?id=1818857
 BuildPython debug \
   "--without-ensurepip --with-pydebug" \
-  "-O0 -Wno-cpp"
+  "%{optflags_debug}" \
+  ""
 %endif # with debug_build
 
 BuildPython optimized \
   "--without-ensurepip %{optimizations_flag}" \
-  ""
+  "" \
+  "%{optflags_optimized}"
 
 # ======================================================
 # Installing the built code:
@@ -1104,7 +1146,7 @@ EOF
 %if %{with debug_build}
 InstallPython debug \
   %{py_INSTSONAME_debug} \
-  -O0 \
+  "%{optflags_debug}" \
   %{LDVERSION_debug}
 %endif # with debug_build
 
@@ -2038,6 +2080,29 @@ fi
 # ======================================================
 
 %changelog
+* Fri Aug 23 2024 Charalampos Stratakis <cstratak@redhat.com> - 3.9.19-7
+- Security fix for CVE-2024-8088
+Resolves: RHEL-55954
+
+* Tue Aug 13 2024 Lumír Balhar <lbalhar@redhat.com> - 3.9.19-6
+- Security fix for CVE-2024-6923
+Resolves: RHEL-53102
+
+* Thu Jul 25 2024 Charalampos Stratakis <cstratak@redhat.com> - 3.9.19-5
+- Properly propagate the optimization flags to C extensions
+
+* Thu Jul 18 2024 Charalampos Stratakis <cstratak@redhat.com> - 3.9.19-4
+- Build Python with -O3
+- https://fedoraproject.org/wiki/Changes/Python_built_with_gcc_O3
+
+* Thu Jul 18 2024 Charalampos Stratakis <cstratak@redhat.com> - 3.9.19-3
+- Security fix for CVE-2024-4032
+Resolves: RHEL-44094
+
+* Tue Jun 11 2024 Charalampos Stratakis <cstratak@redhat.com> - 3.9.19-2
+- Enable importing of hash-based .pyc files under FIPS mode
+Resolves: RHEL-40786
+
 * Mon Apr 22 2024 Charalampos Stratakis <cstratak@redhat.com> - 3.9.19-1
 - Update to 3.9.19
 - Security fixes for CVE-2023-6597 and CVE-2024-0450
