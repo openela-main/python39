@@ -1,4 +1,4 @@
-From 2513477cd909e838824f1766d81fdeff01c0790c Mon Sep 17 00:00:00 2001
+From f253f1e7e8283b876d40af385d5729646f2c18b6 Mon Sep 17 00:00:00 2001
 From: Victor Stinner <vstinner@python.org>
 Date: Wed, 17 Jan 2024 14:53:23 +0100
 Subject: [PATCH] bpo-46623: Skip two test_zlib tests on s390x (GH-31096)
@@ -12,7 +12,7 @@ they fail if zlib uses the s390x hardware accelerator.
  create mode 100644 Misc/NEWS.d/next/Tests/2022-02-03-09-45-26.bpo-46623.vxzuhV.rst
 
 diff --git a/Lib/test/test_zlib.py b/Lib/test/test_zlib.py
-index 02509cd..f3654c9 100644
+index aa7943f..8945b10 100644
 --- a/Lib/test/test_zlib.py
 +++ b/Lib/test/test_zlib.py
 @@ -2,6 +2,7 @@ import unittest
@@ -54,12 +54,12 @@ index 02509cd..f3654c9 100644
 +# Make the assumption that s390x always has an accelerator to simplify the skip
 +# condition. Windows doesn't have os.uname() but it doesn't support s390x.
 +skip_on_s390x = unittest.skipIf(hasattr(os, 'uname') and os.uname().machine == 's390x',
-+                                'skipped on s390x')
++                                 'skipped on s390x')
 +
- 
- class VersionTestCase(unittest.TestCase):
- 
-@@ -174,6 +204,7 @@ class CompressTestCase(BaseCompressTestCase, unittest.TestCase):
+ def _zlib_runtime_version_tuple(zlib_version=zlib.ZLIB_RUNTIME_VERSION):
+     # Register "1.2.3" as "1.2.3.0"
+     # or "1.2.0-linux","1.2.0.f","1.2.0.f-linux"
+@@ -187,6 +217,7 @@ class CompressTestCase(BaseCompressTestCase, unittest.TestCase):
                                           bufsize=zlib.DEF_BUF_SIZE),
                           HAMLET_SCENE)
  
@@ -67,7 +67,7 @@ index 02509cd..f3654c9 100644
      def test_speech128(self):
          # compress more data
          data = HAMLET_SCENE * 128
-@@ -225,6 +256,7 @@ class CompressTestCase(BaseCompressTestCase, unittest.TestCase):
+@@ -238,6 +269,7 @@ class CompressTestCase(BaseCompressTestCase, unittest.TestCase):
  
  class CompressObjectTestCase(BaseCompressTestCase, unittest.TestCase):
      # Test compression object
@@ -84,5 +84,5 @@ index 0000000..be085c0
 +Skip test_pair() and test_speech128() of test_zlib on s390x since they fail
 +if zlib uses the s390x hardware accelerator. Patch by Victor Stinner.
 -- 
-2.43.0
+2.46.0
 
