@@ -17,7 +17,7 @@ URL: https://www.python.org/
 #global prerel ...
 %global upstream_version %{general_version}%{?prerel}
 Version: %{general_version}%{?prerel:~%{prerel}}
-Release: 1%{?dist}
+Release: 2%{?dist}
 License: Python
 
 # Exclude i686 arch. Due to a modularity issue it's being added to the
@@ -459,6 +459,14 @@ Patch415: 00415-cve-2023-27043-gh-102988-reject-malformed-addresses-in-email-par
 # CVE-2023-52425. Future versions of Expat may be more reactive.
 Patch422: 00422-fix-tests-for-xmlpullparser-with-expat-2-6-0.patch
 
+# 00467 #
+# CVE-2025-8194
+#
+# tarfile now validates archives to ensure member offsets are non-negative.
+#
+# Upstream issue: https://github.com/python/cpython/issues/130577
+Patch467: 00467-CVE-2025-8194.patch
+
 # (New patches go here ^^^)
 #
 # When adding new patches to "python" and "python3" in Fedora, EL, etc.,
@@ -874,6 +882,7 @@ rm Lib/ensurepip/_bundled/*.whl
 %apply_patch -q %{PATCH414}
 %apply_patch -q %{PATCH415}
 %apply_patch -q %{PATCH422}
+%apply_patch -q %{PATCH467}
 
 # Remove all exe files to ensure we are not shipping prebuilt binaries
 # note that those are only used to create Microsoft Windows installers
@@ -2048,6 +2057,10 @@ fi
 # ======================================================
 
 %changelog
+* Tue Aug 19 2025 Lumír Balhar <lbalhar@redhat.com> - 3.9.20-2
+- Security fix for CVE-2025-8194
+Resolves: RHEL-106359
+
 * Mon Sep 09 2024 Tomáš Hrnčiar <thrnciar@redhat.com> - 3.9.20-1
 - Update to 3.9.20
 Resolves: RHEL-60007
