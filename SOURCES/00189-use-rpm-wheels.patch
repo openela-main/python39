@@ -1,7 +1,7 @@
 From 2c91575950d4de95d308e30cc4ab20d032b1aceb Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Miro=20Hron=C4=8Dok?= <miro@hroncok.cz>
 Date: Wed, 15 Aug 2018 15:36:29 +0200
-Subject: [PATCH] 00189: Instead of bundled wheels, use our RPM packaged wheels
+Subject: 00189: Instead of bundled wheels, use our RPM packaged wheels
 
 We keep them in /usr/share/python-wheels
 
@@ -12,7 +12,7 @@ We might eventually pursuit upstream support, but it's low prio
  1 file changed, 26 insertions(+), 11 deletions(-)
 
 diff --git a/Lib/ensurepip/__init__.py b/Lib/ensurepip/__init__.py
-index e510cc7..8de2e55 100644
+index d61bb089e3..77d7ec5a65 100644
 --- a/Lib/ensurepip/__init__.py
 +++ b/Lib/ensurepip/__init__.py
 @@ -1,3 +1,5 @@
@@ -30,7 +30,7 @@ index e510cc7..8de2e55 100644
  
  
  __all__ = ["version", "bootstrap"]
--_SETUPTOOLS_VERSION = "58.1.0"
+-_SETUPTOOLS_VERSION = "79.0.1"
 -_PIP_VERSION = "23.0.1"
 +
 +_WHEEL_DIR = "/usr/share/python39-wheels/"

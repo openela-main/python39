@@ -1,9 +1,10 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: David Malcolm <dmalcolm@redhat.com>
 Date: Wed, 13 Jan 2010 21:25:18 +0000
-Subject: [PATCH] 00001: Fixup distutils/unixccompiler.py to remove standard
- library path from rpath Was Patch0 in ivazquez' python3000 specfile
+Subject: 00001: Fixup distutils/unixccompiler.py to remove standard library
+ path from rpath
 
+Was Patch0 in ivazquez' python3000 specfile
 ---
  Lib/distutils/unixccompiler.py | 9 +++++++++
  1 file changed, 9 insertions(+)

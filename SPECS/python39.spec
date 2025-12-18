@@ -13,7 +13,7 @@ URL: https://www.python.org/
 
 #  WARNING  When rebasing to a new Python version,
 #           remember to update the python3-docs package as well
-%global general_version %{pybasever}.20
+%global general_version %{pybasever}.25
 #global prerel ...
 %global upstream_version %{general_version}%{?prerel}
 Version: %{general_version}%{?prerel:~%{prerel}}
@@ -237,6 +237,7 @@ BuildRequires: libnsl2-devel
 BuildRequires: libtirpc-devel
 BuildRequires: libGL-devel
 BuildRequires: libuuid-devel
+BuildRequires: libxcrypt-devel
 BuildRequires: libX11-devel
 BuildRequires: make
 BuildRequires: ncurses-devel
@@ -249,9 +250,9 @@ BuildRequires: sqlite-devel
 BuildRequires: gdb
 
 BuildRequires: tar
-BuildRequires: tcl-devel
+BuildRequires: tcl-devel < 1:9
 BuildRequires: tix-devel
-BuildRequires: tk-devel
+BuildRequires: tk-devel < 1:9
 BuildRequires: tzdata
 
 %if %{with valgrind}
@@ -303,6 +304,7 @@ Source11: idle3.appdata.xml
 
 # 00001 # d06a8853cf4bae9e115f45e1d531d2dc152c5cc8
 # Fixup distutils/unixccompiler.py to remove standard library path from rpath
+#
 # Was Patch0 in ivazquez' python3000 specfile
 Patch1: 00001-rpath.patch
 
@@ -314,7 +316,7 @@ Patch1: 00001-rpath.patch
 # See https://bugzilla.redhat.com/show_bug.cgi?id=556092
 Patch111: 00111-no-static-lib.patch
 
-# 00189 # 4242864a6a12f1f4cf9fd63a6699a73f35261aa3
+# 00189 # 0c6dd5d318a22bbe89e09e1cd5513eaaca549aa5
 # Instead of bundled wheels, use our RPM packaged wheels
 #
 # We keep them in /usr/share/python-wheels
@@ -327,7 +329,7 @@ Patch189: 00189-use-rpm-wheels.patch
 # When the bundled setuptools/pip wheel is updated, the patch no longer applies cleanly.
 # In such cases, the patch needs to be amended and the versions updated here:
 %global pip_version 23.0.1
-%global setuptools_version 58.1.0
+%global setuptools_version 79.0.1
 
 # 00251 # 2eabd04356402d488060bc8fe316ad13fc8a3356
 # Change user install location
@@ -432,12 +434,6 @@ Patch378: 00378-support-expat-2-4-5.patch
 # - https://access.redhat.com/articles/7004769
 Patch397: 00397-tarfile-filter.patch
 
-# 00414 #
-#
-# Skip test_pair() and test_speech128() of test_zlib on s390x since
-# they fail if zlib uses the s390x hardware accelerator.
-Patch414: 00414-skip_test_zlib_s390x.patch
-
 # 00415 #
 # [CVE-2023-27043] gh-102988: Reject malformed addresses in email.parseaddr() (#111116)
 #
@@ -459,13 +455,17 @@ Patch415: 00415-cve-2023-27043-gh-102988-reject-malformed-addresses-in-email-par
 # CVE-2023-52425. Future versions of Expat may be more reactive.
 Patch422: 00422-fix-tests-for-xmlpullparser-with-expat-2-6-0.patch
 
-# 00467 #
-# CVE-2025-8194
+# 00452 # eb11d070c5af7d1b5e47f4e02186152d08eaf793
+# Properly apply exported CFLAGS for dtrace/systemtap builds
 #
-# tarfile now validates archives to ensure member offsets are non-negative.
+# When using --with-dtrace the resulting object file could be missing
+# specific CFLAGS exported by the build system due to the systemtap
+# script using specific defaults.
 #
-# Upstream issue: https://github.com/python/cpython/issues/130577
-Patch467: 00467-CVE-2025-8194.patch
+# Exporting the CC and CFLAGS variables before the dtrace invocation
+# allows us to properly apply CFLAGS exported by the build system
+# even when cross-compiling.
+Patch452: 00452-properly-apply-exported-cflags-for-dtrace-systemtap-builds.patch
 
 # (New patches go here ^^^)
 #
@@ -879,10 +879,9 @@ rm Lib/ensurepip/_bundled/*.whl
 %apply_patch -q %{PATCH353}
 %apply_patch -q %{PATCH378}
 %apply_patch -q %{PATCH397}
-%apply_patch -q %{PATCH414}
 %apply_patch -q %{PATCH415}
 %apply_patch -q %{PATCH422}
-%apply_patch -q %{PATCH467}
+%apply_patch -q %{PATCH452}
 
 # Remove all exe files to ensure we are not shipping prebuilt binaries
 # note that those are only used to create Microsoft Windows installers
@@ -1704,6 +1703,10 @@ fi
 %dir %{pylibdir}/site-packages/
 %dir %{pylibdir}/site-packages/__pycache__/
 %{pylibdir}/site-packages/README.txt
+
+%exclude %{pylibdir}/_sysconfigdata_d_linux_%{platform_triplet}.py
+%exclude %{pylibdir}/__pycache__/_sysconfigdata_d_linux_%{platform_triplet}%{bytecode_suffixes}
+
 %{pylibdir}/*.py
 %dir %{pylibdir}/__pycache__/
 %{pylibdir}/__pycache__/*%{bytecode_suffixes}
@@ -2034,6 +2037,9 @@ fi
 %{dynload_dir}/_testinternalcapi.%{SOABI_debug}.so
 %{dynload_dir}/_testmultiphase.%{SOABI_debug}.so
 
+%{pylibdir}/_sysconfigdata_d_linux_%{platform_triplet}.py
+%{pylibdir}/__pycache__/_sysconfigdata_d_linux_%{platform_triplet}%{bytecode_suffixes}
+
 %endif # with debug_build
 
 # We put the debug-gdb.py file inside /usr/lib/debug to avoid noise from ldconfig
@@ -2057,6 +2063,19 @@ fi
 # ======================================================
 
 %changelog
+* Mon Nov 24 2025 Lumír Balhar <lbalhar@redhat.com> - 3.9.25-2
+- Add explicit BR: libxcrypt-devel
+- Properly apply exported CFLAGS for dtrace/systemtap builds
+- Update to Python 3.9.25
+- Move _sysconfigdata_d_linux*.py to the debug subpackage
+- Fedora contributions by:
+      Björn Esser <besser82@fedoraproject.org>
+      Charalampos Stratakis <cstratak@redhat.com>
+      Karolina Surma <ksurma@redhat.com>
+      Tomas Orsava <torsava@redhat.com>
+      Tomáš Hrnčiar <thrnciar@redhat.com>
+Resolves: RHEL-128539
+
 * Tue Aug 19 2025 Lumír Balhar <lbalhar@redhat.com> - 3.9.20-2
 - Security fix for CVE-2025-8194
 Resolves: RHEL-106359

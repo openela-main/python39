@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Lumir Balhar <lbalhar@redhat.com>
 Date: Tue, 4 Aug 2020 12:04:03 +0200
-Subject: [PATCH] 00353: Original names for architectures with different names
+Subject: 00353: Original names for architectures with different names
  downstream
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
